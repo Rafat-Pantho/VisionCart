@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visual Inventory Management System</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+  <header class="bg-slate-900 text-white shadow-md">
+    <div class="max-w-7xl mx-auto px-6 py-5">
+      <h1 class="text-2xl font-bold tracking-tight">Visual Inventory Management System</h1>
+      <p class="text-slate-400 text-sm mt-1">Scan shelves, reconcile stock, catch shortages instantly.</p>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+
+      <!-- LEFT: "Before" — the cluttered, uploaded shelf -->
+      <section class="bg-white rounded-xl shadow p-6 lg:sticky lg:top-8">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="text-xl">📷</span>
+          <h2 class="text-lg font-semibold">Cluttered Shelf <span class="text-slate-400 font-normal">(Before)</span></h2>
+        </div>
+
+        <div id="image-preview-wrapper"
+             class="mb-5 aspect-square w-full rounded-lg border-2 border-dashed border-slate-200
+                    bg-slate-50 flex items-center justify-center overflow-hidden">
+          <img id="image-preview" class="hidden w-full h-full object-cover" />
+          <p id="image-preview-placeholder" class="text-slate-400 text-sm text-center px-6">
+            No image selected yet — choose a shelf photo below.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <input id="shelf-image-input" type="file" accept="image/*"
+                 class="block w-full text-sm text-slate-600
+                        file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0
+                        file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700
+                        hover:file:bg-indigo-100 cursor-pointer border border-slate-200 rounded-lg" />
+          <button id="scan-button"
+                  class="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300
+                         disabled:cursor-not-allowed text-white font-semibold
+                         px-5 py-2.5 rounded-lg shadow-sm transition-colors whitespace-nowrap">
+            Scan Shelf
+          </button>
+        </div>
+      </section>
+
+      <!-- RIGHT: "After" — the organized, structured data -->
+      <div class="flex flex-col gap-6">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">📊</span>
+          <h2 class="text-lg font-semibold">Organized Data <span class="text-slate-400 font-normal">(After)</span></h2>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-white rounded-xl shadow p-5 flex items-center gap-4">
+            <div class="h-11 w-11 shrink-0 rounded-lg bg-indigo-50 flex items-center justify-center text-xl">📦</div>
+            <div>
+              <p id="metric-total-products" class="text-2xl font-bold text-slate-900">0</p>
+              <p class="text-xs text-slate-500 uppercase tracking-wide">Unique Products</p>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl shadow p-5 flex items-center gap-4">
+            <div class="h-11 w-11 shrink-0 rounded-lg bg-red-50 flex items-center justify-center text-xl">⚠️</div>
+            <div>
+              <p id="metric-restock-count" class="text-2xl font-bold text-slate-900">0</p>
+              <p class="text-xs text-slate-500 uppercase tracking-wide">Needing Restock</p>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl shadow p-5 flex items-center gap-4">
+            <div class="h-11 w-11 shrink-0 rounded-lg bg-slate-100 flex items-center justify-center text-xl">🕒</div>
+            <div>
+              <p id="metric-last-scan" class="text-2xl font-bold text-slate-900">Never</p>
+              <p class="text-xs text-slate-500 uppercase tracking-wide">Last Scan Time</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alerts Section -->
+        <section id="alerts-section" class="hidden bg-red-50 border border-red-200 rounded-xl shadow p-6">
+          <h2 class="text-lg font-semibold text-red-700 mb-3">⚠ Low Stock Alerts</h2>
+          <ul id="alerts-list" class="list-disc list-inside space-y-1 text-red-700 text-sm"></ul>
+        </section>
+
+        <!-- Inventory Table -->
+        <section class="bg-white rounded-xl shadow p-6">
+          <h2 class="text-lg font-semibold mb-4">Current Inventory</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead>
+                <tr class="border-b border-slate-200 text-slate-500 uppercase text-xs tracking-wide">
+                  <th class="py-2 pr-4">Product</th>
+                  <th class="py-2 pr-4">Expected Qty</th>
+                  <th class="py-2 pr-4">Actual Qty</th>
+                  <th class="py-2 pr-4">Low Stock Threshold</th>
+                  <th class="py-2 pr-4">Status</th>
+                </tr>
+              </thead>
+              <tbody id="inventory-table-body">
+                <tr>
+                  <td colspan="5" class="py-6 text-center text-slate-400">Loading inventory...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Toast Notification -->
+  <div id="toast"
+       class="hidden fixed bottom-6 right-6 max-w-sm bg-red-600 text-white
+              px-4 py-3 rounded-lg shadow-lg text-sm font-medium
+              transition-opacity duration-300 opacity-0">
+  </div>
+
+  <script>
+    const API_BASE = "http://localhost:8000";
+
+    const tableBody = document.getElementById("inventory-table-body");
+    const alertsSection = document.getElementById("alerts-section");
+    const alertsList = document.getElementById("alerts-list");
+    const fileInput = document.getElementById("shelf-image-input");
+    const scanButton = document.getElementById("scan-button");
+    const imagePreview = document.getElementById("image-preview");
+    const imagePreviewPlaceholder = document.getElementById("image-preview-placeholder");
+    const toast = document.getElementById("toast");
+
+    const metricTotalProducts = document.getElementById("metric-total-products");
+    const metricRestockCount = document.getElementById("metric-restock-count");
+    const metricLastScan = document.getElementById("metric-last-scan");
+
+    let toastTimeoutId = null;
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.remove("hidden");
+      // Force a reflow so the opacity transition re-triggers on repeated calls.
+      void toast.offsetWidth;
+      toast.classList.remove("opacity-0");
+
+      if (toastTimeoutId) clearTimeout(toastTimeoutId);
+      toastTimeoutId = setTimeout(() => {
+        toast.classList.add("opacity-0");
+        setTimeout(() => toast.classList.add("hidden"), 300);
+      }, 4000);
+    }
+
+    function updateMetrics(products) {
+      const total = products.length;
+      const restockCount = products.filter(p => p.actual_quantity < p.low_stock_threshold).length;
+
+      metricTotalProducts.textContent = total;
+      metricRestockCount.textContent = restockCount;
+      metricRestockCount.classList.toggle("text-red-600", restockCount > 0);
+      metricRestockCount.classList.toggle("text-slate-900", restockCount === 0);
+    }
+
+    function renderInventory(products) {
+      tableBody.innerHTML = "";
+
+      if (!products || products.length === 0) {
+        tableBody.innerHTML = `
+          <tr><td colspan="5" class="py-6 text-center text-slate-400">No inventory data available.</td></tr>
+        `;
+        updateMetrics([]);
+        return;
+      }
+
+      products.forEach(product => {
+        const isLow = product.actual_quantity < product.low_stock_threshold;
+        const row = document.createElement("tr");
+        row.className = isLow
+          ? "border-b border-slate-100 last:border-0 bg-red-50"
+          : "border-b border-slate-100 last:border-0";
+        row.innerHTML = `
+          <td class="py-3 pr-4 font-medium">${product.product_name}</td>
+          <td class="py-3 pr-4">${product.expected_quantity}</td>
+          <td class="py-3 pr-4">${product.actual_quantity}</td>
+          <td class="py-3 pr-4">${product.low_stock_threshold}</td>
+          <td class="py-3 pr-4">
+            ${isLow
+              ? '<span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">⚠️ Low Stock</span>'
+              : '<span class="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">OK</span>'}
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+
+      updateMetrics(products);
+    }
+
+    function renderAlerts(alerts) {
+      if (!alerts || alerts.length === 0) {
+        alertsSection.classList.add("hidden");
+        alertsList.innerHTML = "";
+        return;
+      }
+
+      alertsList.innerHTML = "";
+      alerts.forEach(alert => {
+        const li = document.createElement("li");
+        li.textContent = alert;
+        alertsList.appendChild(li);
+      });
+      alertsSection.classList.remove("hidden");
+    }
+
+    async function fetchInventory() {
+      try {
+        const response = await fetch(`${API_BASE}/api/inventory`);
+        if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+        const products = await response.json();
+        renderInventory(products);
+      } catch (err) {
+        tableBody.innerHTML = `
+          <tr><td colspan="5" class="py-6 text-center text-red-500">Failed to load inventory: ${err.message}</td></tr>
+        `;
+      }
+    }
+
+    async function scanShelf() {
+      const file = fileInput.files[0];
+      if (!file) {
+        alert("Please choose an image to scan first.");
+        return;
+      }
+
+      const originalButtonText = scanButton.textContent;
+      scanButton.disabled = true;
+      scanButton.textContent = "Scanning...";
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        let response;
+        try {
+          response = await fetch(`${API_BASE}/api/scan-shelf`, {
+            method: "POST",
+            body: formData,
+          });
+        } catch (networkErr) {
+          // fetch() itself threw: server unreachable, CORS blocked, etc.
+          throw new Error("AI Processing Failed. Please try a clearer image.");
+        }
+
+        if (!response.ok) {
+          // Any non-2xx (500 from a model/parsing failure, 400 bad upload, etc.)
+          throw new Error("AI Processing Failed. Please try a clearer image.");
+        }
+
+        const result = await response.json();
+        renderAlerts(result.alerts);
+        await fetchInventory();
+
+        metricLastScan.textContent = new Date().toLocaleTimeString();
+      } catch (err) {
+        showToast(err.message);
+      } finally {
+        scanButton.disabled = false;
+        scanButton.textContent = originalButtonText;
+      }
+    }
+
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      if (!file) {
+        imagePreview.classList.add("hidden");
+        imagePreview.removeAttribute("src");
+        imagePreviewPlaceholder.classList.remove("hidden");
+        return;
+      }
+
+      const objectUrl = URL.createObjectURL(file);
+      imagePreview.src = objectUrl;
+      imagePreview.classList.remove("hidden");
+      imagePreviewPlaceholder.classList.add("hidden");
+      imagePreview.onload = () => URL.revokeObjectURL(objectUrl);
+    });
+
+    scanButton.addEventListener("click", scanShelf);
+    window.addEventListener("DOMContentLoaded", fetchInventory);
+  </script>
+
+</body>
+</html>

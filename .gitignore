@@ -1,0 +1,14 @@
+# Python virtual environment
+venv/
+
+# Python cache
+__pycache__/
+
+# SQLite database
+inventory.db
+
+# Environment variables
+.env
+
+# Repomix output
+repomix-output.xml
