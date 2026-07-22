@@ -1,296 +1,222 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en" data-theme="dark">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Visual Inventory Management System</title>
-<script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VisionCart · Visual Inventory Management</title>
+  <meta name="description" content="Snap a shelf photo, let AI count every product, and catch shortages instantly." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="h-screen overflow-hidden bg-slate-100 text-slate-800 flex flex-col">
+<body>
+  <!-- Prevent theme flash: apply saved theme before paint -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("vc-theme");
+        if (t) document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
 
-  <!-- Header -->
-  <header class="shrink-0 bg-slate-900 text-white px-6 py-3 border-b-4 border-sky-500">
-    <div class="max-w-7xl mx-auto flex items-center justify-between">
-      <h1 class="text-lg sm:text-xl font-bold tracking-tight">
-        VisionCart <span class="text-sky-400 font-normal">· Visual Inventory Management</span>
-      </h1>
-      <p class="hidden md:block text-slate-400 text-xs">Scan a shelf → reconcile stock → catch shortages instantly.</p>
-    </div>
-  </header>
-
-  <!-- Main: fills the rest of the viewport, no page scroll -->
-  <main class="flex-1 min-h-0 max-w-7xl w-full mx-auto px-6 py-4 grid grid-cols-1 lg:grid-cols-5 gap-5 overflow-hidden">
-
-    <!-- LEFT: "Before" — the cluttered, uploaded shelf -->
-    <section class="lg:col-span-2 min-h-0 flex flex-col bg-white rounded-xl shadow p-5">
-      <div class="shrink-0 flex items-center gap-2 mb-3">
-        <span class="text-lg">📷</span>
-        <h2 class="text-base font-semibold">Cluttered Shelf <span class="text-slate-400 font-normal">(Before)</span></h2>
+  <div class="app">
+    <!-- ======================= HEADER ======================= -->
+    <header class="header">
+      <div class="brand">
+        <div class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 3h2l.4 2M7 13h10l3.5-7H5.12"></path>
+            <circle cx="9" cy="20" r="1.4"></circle><circle cx="17" cy="20" r="1.4"></circle>
+            <circle cx="12" cy="9" r="2.1"></circle>
+          </svg>
+        </div>
+        <div>
+          <div class="brand__name">Vision<b>Cart</b></div>
+          <div class="brand__tag">Visual Inventory Management</div>
+        </div>
       </div>
 
-      <div id="image-preview-wrapper"
-           class="flex-1 min-h-0 mb-4 rounded-lg border-2 border-dashed border-slate-200
-                  bg-slate-50 flex items-center justify-center overflow-hidden">
-        <img id="image-preview" class="hidden w-full h-full object-contain" />
-        <p id="image-preview-placeholder" class="text-slate-400 text-sm text-center px-6">
-          No image selected yet — choose a shelf photo below.
-        </p>
-      </div>
+      <div class="header__spacer"></div>
 
-      <div class="shrink-0 flex items-center gap-3">
-        <input id="shelf-image-input" type="file" accept="image/*"
-               class="block flex-1 min-w-0 text-sm text-slate-600
-                      file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0
-                      file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700
-                      hover:file:bg-sky-100 cursor-pointer border border-slate-200 rounded-lg" />
-        <button id="scan-button"
-                class="shrink-0 bg-sky-500 hover:bg-sky-600 disabled:bg-sky-300
-                       disabled:cursor-not-allowed text-white font-semibold
-                       px-5 py-2.5 rounded-lg shadow-sm transition-colors whitespace-nowrap">
-          Scan Shelf
+      <div class="header__actions">
+        <span class="conn" id="conn" data-state="checking" title="Backend connection status">
+          <span class="conn__dot"></span>
+          <span class="conn__txt" id="conn-text">Connecting…</span>
+        </span>
+        <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle theme">
+          <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+          <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
         </button>
+      </div>
+    </header>
+
+    <!-- ======================= KPI ROW ======================= -->
+    <section class="kpis" aria-label="Inventory summary">
+      <div class="kpi kpi--products">
+        <div class="kpi__top">
+          <div class="kpi__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><path d="M3.3 7 12 12l8.7-5M12 22V12"></path></svg>
+          </div>
+          <span class="kpi__label">Total Products</span>
+        </div>
+        <div class="kpi__value" id="kpi-total" data-count="0">0</div>
+        <div class="kpi__sub">Unique items tracked</div>
+      </div>
+
+      <div class="kpi kpi--ok">
+        <div class="kpi__top">
+          <div class="kpi__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"></path><path d="m22 4-10 10.01L9 11"></path></svg>
+          </div>
+          <span class="kpi__label">In Stock</span>
+        </div>
+        <div class="kpi__value" id="kpi-ok" data-count="0">0</div>
+        <div class="kpi__sub">Above threshold</div>
+      </div>
+
+      <div class="kpi kpi--low">
+        <div class="kpi__top">
+          <div class="kpi__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+          </div>
+          <span class="kpi__label">Needs Restock</span>
+        </div>
+        <div class="kpi__value" id="kpi-low" data-count="0">0</div>
+        <div class="kpi__sub">Low or out of stock</div>
+      </div>
+
+      <div class="kpi kpi--out">
+        <div class="kpi__top">
+          <div class="kpi__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M15 9l-6 6M9 9l6 6"></path></svg>
+          </div>
+          <span class="kpi__label">Out of Stock</span>
+        </div>
+        <div class="kpi__value" id="kpi-out" data-count="0">0</div>
+        <div class="kpi__sub" id="kpi-lastscan">Last scan: never</div>
       </div>
     </section>
 
-    <!-- RIGHT: "After" — the organized, structured data -->
-    <div class="lg:col-span-3 min-h-0 flex flex-col gap-4 overflow-hidden">
-      <div class="shrink-0 flex items-center gap-2">
-        <span class="text-lg">📊</span>
-        <h2 class="text-base font-semibold">Organized Data <span class="text-slate-400 font-normal">(After)</span></h2>
-      </div>
+    <!-- ======================= MAIN GRID ======================= -->
+    <div class="grid">
+      <!-- ---------- LEFT: Scan panel ---------- -->
+      <section class="card scan-panel" aria-label="Scan a shelf">
+        <div class="card__head">
+          <span class="chip-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3.2"></circle></svg>
+          </span>
+          <h2>Scan a Shelf</h2>
+        </div>
 
-      <!-- Metric Cards -->
-      <div class="shrink-0 grid grid-cols-3 gap-3">
-        <div class="bg-white rounded-xl shadow p-3 flex items-center gap-3">
-          <div class="h-9 w-9 shrink-0 rounded-lg bg-sky-50 flex items-center justify-center text-lg">📦</div>
-          <div class="min-w-0">
-            <p id="metric-total-products" class="text-xl font-bold text-slate-900 leading-tight">0</p>
-            <p class="text-[11px] text-slate-500 uppercase tracking-wide truncate">Unique Products</p>
+        <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Drop a shelf photo here or click to browse">
+          <div class="dz-empty">
+            <div class="dz-ill">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M17 8l-5-5-5 5M12 3v13"></path></svg>
+            </div>
+            <h3>Drop your shelf photo</h3>
+            <p>Drag &amp; drop an image, or <span class="dz-browse">browse files</span> to get started.</p>
+            <span class="dz-hint">PNG · JPG · WEBP</span>
           </div>
-        </div>
-        <div class="bg-white rounded-xl shadow p-3 flex items-center gap-3">
-          <div class="h-9 w-9 shrink-0 rounded-lg bg-red-50 flex items-center justify-center text-lg">⚠️</div>
-          <div class="min-w-0">
-            <p id="metric-restock-count" class="text-xl font-bold text-slate-900 leading-tight">0</p>
-            <p class="text-[11px] text-slate-500 uppercase tracking-wide truncate">Needing Restock</p>
-          </div>
-        </div>
-        <div class="bg-white rounded-xl shadow p-3 flex items-center gap-3">
-          <div class="h-9 w-9 shrink-0 rounded-lg bg-sky-50 flex items-center justify-center text-lg">🕒</div>
-          <div class="min-w-0">
-            <p id="metric-last-scan" class="text-xl font-bold text-slate-900 leading-tight truncate">Never</p>
-            <p class="text-[11px] text-slate-500 uppercase tracking-wide truncate">Last Scan Time</p>
-          </div>
-        </div>
-      </div>
 
-      <!-- Alerts Section -->
-      <section id="alerts-section" class="hidden shrink-0 max-h-28 overflow-y-auto bg-red-50 border border-red-200 rounded-xl shadow p-4">
-        <h2 class="text-sm font-semibold text-red-700 mb-2">⚠ Low Stock Alerts</h2>
-        <ul id="alerts-list" class="list-disc list-inside space-y-1 text-red-700 text-sm"></ul>
+          <div class="dz-preview">
+            <img id="preview-img" alt="Selected shelf preview" />
+          </div>
+
+          <div class="scan-overlay">
+            <div class="scan-grid"></div>
+            <div class="scan-line"></div>
+            <div class="scan-tag"><span class="spinner"></span> Analyzing shelf with AI…</div>
+          </div>
+
+          <button class="dz-clear" id="clear-btn" type="button" aria-label="Remove image" title="Remove image">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+          </button>
+
+          <input id="file-input" type="file" accept="image/*" hidden />
+        </div>
+
+        <div class="scan-actions">
+          <div class="file-name" id="file-name">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
+            <span id="file-name-text"></span>
+          </div>
+
+          <button class="btn btn--primary btn--block" id="scan-btn" type="button" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M7 12h10"></path></svg>
+            <span id="scan-btn-text">Scan Shelf</span>
+          </button>
+
+          <div class="tips">
+            <span class="tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg> Bright, front-on photos</span>
+            <span class="tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg> Whole shelf in frame</span>
+          </div>
+        </div>
       </section>
 
-      <!-- Inventory Table -->
-      <section class="flex-1 min-h-0 flex flex-col bg-white rounded-xl shadow p-5">
-        <h2 class="shrink-0 text-base font-semibold mb-3">Current Inventory</h2>
-        <div class="flex-1 min-h-0 overflow-y-auto">
-          <table class="w-full text-left text-sm">
-            <thead class="sticky top-0 bg-white">
-              <tr class="border-b border-slate-200 text-slate-500 uppercase text-xs tracking-wide">
-                <th class="py-2 pr-4">Product</th>
-                <th class="py-2 pr-4">Expected Qty</th>
-                <th class="py-2 pr-4">Actual Qty</th>
-                <th class="py-2 pr-4">Low Stock Threshold</th>
-                <th class="py-2 pr-4">Status</th>
-              </tr>
-            </thead>
-            <tbody id="inventory-table-body">
-              <tr>
-                <td colspan="5" class="py-6 text-center text-slate-400">Loading inventory...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <!-- ---------- RIGHT: Alerts + Inventory ---------- -->
+      <div class="stack">
+        <!-- Alerts -->
+        <section class="card alerts hidden" id="alerts-card" aria-label="Stock alerts">
+          <div class="card__head">
+            <span class="chip-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+            </span>
+            <h2>Stock Alerts</h2>
+            <span class="badge badge--out" id="alerts-count">0</span>
+          </div>
+          <ul class="alerts__list" id="alerts-list"></ul>
+        </section>
+
+        <!-- Inventory -->
+        <section class="card" aria-label="Current inventory">
+          <div class="card__head">
+            <span class="chip-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v4H3zM3 10h18v4H3zM3 17h18v4H3z"></path></svg>
+            </span>
+            <h2>Current Inventory</h2>
+          </div>
+
+          <div class="toolbar">
+            <div class="search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+              <input type="text" id="search" placeholder="Search products…" autocomplete="off" />
+            </div>
+            <div class="filters" role="tablist" aria-label="Filter inventory">
+              <button class="active" data-filter="all">All <span class="fcount" id="fc-all">0</span></button>
+              <button data-filter="ok">In Stock <span class="fcount" id="fc-ok">0</span></button>
+              <button data-filter="low">Low <span class="fcount" id="fc-low">0</span></button>
+              <button data-filter="out">Out <span class="fcount" id="fc-out">0</span></button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th class="sortable" data-sort="product_name"><span class="th-inner">Product <svg class="sort-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></span></th>
+                  <th class="sortable num" data-sort="expected_quantity"><span class="th-inner">Expected <svg class="sort-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></span></th>
+                  <th class="sortable num" data-sort="actual_quantity"><span class="th-inner">Actual <svg class="sort-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></span></th>
+                  <th class="num">Threshold</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="table-body"></tbody>
+            </table>
+          </div>
+
+          <div class="table-foot">
+            <span id="foot-count">—</span>
+            <span id="foot-hint">Tip: click a column header to sort</span>
+          </div>
+        </section>
+      </div>
     </div>
-
-  </main>
-
-  <!-- Toast Notification -->
-  <div id="toast"
-       class="hidden fixed bottom-6 right-6 max-w-sm bg-red-600 text-white
-              px-4 py-3 rounded-lg shadow-lg text-sm font-medium
-              transition-opacity duration-300 opacity-0">
   </div>
 
-  <script>
-    const API_BASE = "http://localhost:8000";
+  <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
 
-    const tableBody = document.getElementById("inventory-table-body");
-    const alertsSection = document.getElementById("alerts-section");
-    const alertsList = document.getElementById("alerts-list");
-    const fileInput = document.getElementById("shelf-image-input");
-    const scanButton = document.getElementById("scan-button");
-    const imagePreview = document.getElementById("image-preview");
-    const imagePreviewPlaceholder = document.getElementById("image-preview-placeholder");
-    const toast = document.getElementById("toast");
-
-    const metricTotalProducts = document.getElementById("metric-total-products");
-    const metricRestockCount = document.getElementById("metric-restock-count");
-    const metricLastScan = document.getElementById("metric-last-scan");
-
-    let toastTimeoutId = null;
-
-    function showToast(message) {
-      toast.textContent = message;
-      toast.classList.remove("hidden");
-      // Force a reflow so the opacity transition re-triggers on repeated calls.
-      void toast.offsetWidth;
-      toast.classList.remove("opacity-0");
-
-      if (toastTimeoutId) clearTimeout(toastTimeoutId);
-      toastTimeoutId = setTimeout(() => {
-        toast.classList.add("opacity-0");
-        setTimeout(() => toast.classList.add("hidden"), 300);
-      }, 4000);
-    }
-
-    function updateMetrics(products) {
-      const total = products.length;
-      const restockCount = products.filter(p => p.actual_quantity < p.low_stock_threshold).length;
-
-      metricTotalProducts.textContent = total;
-      metricRestockCount.textContent = restockCount;
-      metricRestockCount.classList.toggle("text-red-600", restockCount > 0);
-      metricRestockCount.classList.toggle("text-slate-900", restockCount === 0);
-    }
-
-    function renderInventory(products) {
-      tableBody.innerHTML = "";
-
-      if (!products || products.length === 0) {
-        tableBody.innerHTML = `
-          <tr><td colspan="5" class="py-6 text-center text-slate-400">No inventory data available.</td></tr>
-        `;
-        updateMetrics([]);
-        return;
-      }
-
-      products.forEach(product => {
-        const isLow = product.actual_quantity < product.low_stock_threshold;
-        const row = document.createElement("tr");
-        row.className = isLow
-          ? "border-b border-slate-100 last:border-0 bg-red-50"
-          : "border-b border-slate-100 last:border-0";
-        row.innerHTML = `
-          <td class="py-3 pr-4 font-medium">${product.product_name}</td>
-          <td class="py-3 pr-4">${product.expected_quantity}</td>
-          <td class="py-3 pr-4">${product.actual_quantity}</td>
-          <td class="py-3 pr-4">${product.low_stock_threshold}</td>
-          <td class="py-3 pr-4">
-            ${isLow
-              ? '<span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">⚠️ Low Stock</span>'
-              : '<span class="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-sky-100 text-sky-700">OK</span>'}
-          </td>
-        `;
-        tableBody.appendChild(row);
-      });
-
-      updateMetrics(products);
-    }
-
-    function renderAlerts(alerts) {
-      if (!alerts || alerts.length === 0) {
-        alertsSection.classList.add("hidden");
-        alertsList.innerHTML = "";
-        return;
-      }
-
-      alertsList.innerHTML = "";
-      alerts.forEach(alert => {
-        const li = document.createElement("li");
-        li.textContent = alert;
-        alertsList.appendChild(li);
-      });
-      alertsSection.classList.remove("hidden");
-    }
-
-    async function fetchInventory() {
-      try {
-        const response = await fetch(`${API_BASE}/api/inventory`);
-        if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
-        const products = await response.json();
-        renderInventory(products);
-      } catch (err) {
-        tableBody.innerHTML = `
-          <tr><td colspan="5" class="py-6 text-center text-red-500">Failed to load inventory: ${err.message}</td></tr>
-        `;
-      }
-    }
-
-    async function scanShelf() {
-      const file = fileInput.files[0];
-      if (!file) {
-        alert("Please choose an image to scan first.");
-        return;
-      }
-
-      const originalButtonText = scanButton.textContent;
-      scanButton.disabled = true;
-      scanButton.textContent = "Scanning...";
-
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        let response;
-        try {
-          response = await fetch(`${API_BASE}/api/scan-shelf`, {
-            method: "POST",
-            body: formData,
-          });
-        } catch (networkErr) {
-          // fetch() itself threw: server unreachable, CORS blocked, etc.
-          throw new Error("AI Processing Failed. Please try a clearer image.");
-        }
-
-        if (!response.ok) {
-          // Any non-2xx (500 from a model/parsing failure, 400 bad upload, etc.)
-          throw new Error("AI Processing Failed. Please try a clearer image.");
-        }
-
-        const result = await response.json();
-        renderAlerts(result.alerts);
-        await fetchInventory();
-
-        metricLastScan.textContent = new Date().toLocaleTimeString();
-      } catch (err) {
-        showToast(err.message);
-      } finally {
-        scanButton.disabled = false;
-        scanButton.textContent = originalButtonText;
-      }
-    }
-
-    fileInput.addEventListener("change", () => {
-      const file = fileInput.files[0];
-      if (!file) {
-        imagePreview.classList.add("hidden");
-        imagePreview.removeAttribute("src");
-        imagePreviewPlaceholder.classList.remove("hidden");
-        return;
-      }
-
-      const objectUrl = URL.createObjectURL(file);
-      imagePreview.src = objectUrl;
-      imagePreview.classList.remove("hidden");
-      imagePreviewPlaceholder.classList.add("hidden");
-      imagePreview.onload = () => URL.revokeObjectURL(objectUrl);
-    });
-
-    scanButton.addEventListener("click", scanShelf);
-    window.addEventListener("DOMContentLoaded", fetchInventory);
-  </script>
-
+  <script src="app.js"></script>
 </body>
 </html>

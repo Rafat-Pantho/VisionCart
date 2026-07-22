@@ -18,6 +18,17 @@ against the expected inventory in real time, flags anything running low (or
 gone entirely), and surfaces it all on a live dashboard — turning a "cluttered
 shelf" photo into organized, actionable inventory data in seconds.
 
+## Screenshots
+
+| Dashboard (dark) | Dashboard (light) |
+|:---:|:---:|
+| ![VisionCart dashboard, dark theme](ScreenShot/dashboard-dark.png) | ![VisionCart dashboard, light theme](ScreenShot/dashboard-light.png) |
+
+<p align="center">
+  <img src="ScreenShot/dashboard-mobile.png" alt="VisionCart responsive mobile layout" width="300" />
+</p>
+<p align="center"><em>Fully responsive — the layout reflows from a two-column dashboard down to a single stacked column on mobile.</em></p>
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -25,10 +36,19 @@ shelf" photo into organized, actionable inventory data in seconds.
 | Backend API | [FastAPI](https://fastapi.tiangolo.com/) (Python) |
 | Database | SQLite (via SQLAlchemy ORM) |
 | AI / Vision | `gemma-4-26b-a4b-it` via the [Google GenAI SDK](https://pypi.org/project/google-genai/) |
-| Frontend | Vanilla HTML, JavaScript, and [Tailwind CSS](https://tailwindcss.com/) (via CDN) |
+| Frontend | Vanilla HTML, CSS, and JavaScript — no framework, no build step |
 
-No frontend build step, no framework — just a single static `index.html` that
-talks to the FastAPI backend over `fetch()`.
+The frontend is a hand-crafted design system in three static files
+(`index.html`, `styles.css`, `app.js`) that talk to the FastAPI backend over
+`fetch()`. No bundler, no dependencies — just open the HTML file in a browser.
+
+### Frontend features
+
+- **Drag-and-drop upload** with instant preview and an animated AI "scan" overlay.
+- **Live KPI cards** — total products, in-stock, needs-restock, and out-of-stock — with count-up animations and a last-scan timestamp.
+- **Searchable, sortable, filterable inventory table** (All / In Stock / Low / Out) with per-row stock bars and colour-coded status badges.
+- **Light & dark themes** with a persisted toggle, plus a live backend connection indicator.
+- Toast notifications, loading skeletons, and graceful empty / offline states.
 
 ## Setup Instructions
 
@@ -92,16 +112,21 @@ frontend/index.html
 
 ## Usage
 
-The dashboard is split into a **Before / After** layout:
+The dashboard is split into a **Scan → Inventory** layout:
 
-- **Left — "Cluttered Shelf" (Before):** Choose a shelf photo and click
-  **Scan Shelf**. A preview of the uploaded image appears immediately so you
-  can confirm what's being analyzed.
-- **Right — "Organized Data" (After):** Once Gemma 4 finishes processing the
-  image, the panel updates live — metric cards summarize total unique
-  products, items needing restock, and the last scan time; any low-stock or
-  out-of-stock items are called out in the alerts banner and highlighted
-  directly in the inventory table.
+- **Left — "Scan a Shelf":** Drag a shelf photo onto the drop zone (or click to
+  browse). A preview appears immediately, and clicking **Scan Shelf** runs an
+  animated AI analysis overlay while Gemma processes the image.
+- **Top — KPI cards:** Total products, in-stock, needs-restock, and out-of-stock
+  counts update live with animated counters, alongside the last scan time.
+- **Right — "Current Inventory":** The reconciled results populate a table you
+  can **search**, **filter** (All / In Stock / Low / Out), and **sort** by any
+  column. Each row shows a stock bar and a colour-coded status badge, and any
+  shortages are also called out in a dedicated alerts panel.
+
+Use the **theme toggle** in the header to switch between light and dark modes
+(your choice is remembered), and watch the **connection indicator** to confirm
+the backend is reachable.
 
 Products the AI detects are reconciled against the database automatically:
 counts are updated, new products are added, and anything expected but **not**
