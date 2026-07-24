@@ -9,7 +9,7 @@
 
 "use strict";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = "https://visioncart.onrender.com";
 
 /* ----------  DOM refs  ---------- */
 const $ = (id) => document.getElementById(id);
